@@ -12,6 +12,10 @@ A social media content planning tool with AI-powered caption generation. Plan, o
 - **Media library** — drag-and-drop image and video upload; videos auto-transcode to MP4 and auto-transcribe via Whisper so the transcript feeds into AI caption context
 - **Dark / light theme**
 
+<img width="1896" height="926" alt="Screenshot 2026-06-06 at 10 16 13 PM" src="https://github.com/user-attachments/assets/1563df8e-f408-4873-bfda-ab290e34b20f" />
+<img width="1907" height="931" alt="Screenshot 2026-06-06 at 10 10 25 PM" src="https://github.com/user-attachments/assets/150b9d85-77e3-4bdf-abeb-7c1065a02d8c" />
+<img width="1913" height="933" alt="Screenshot 2026-06-06 at 10 10 08 PM" src="https://github.com/user-attachments/assets/3e2a106f-776a-47a6-b351-9a49a1364b5c" />
+
 ## Tech stack
 
 - **Next.js 16** / **React 19** / **TypeScript**
@@ -20,10 +24,6 @@ A social media content planning tool with AI-powered caption generation. Plan, o
 - **Whisper API** (OpenAI) — video transcription
 - **dnd-kit** — drag-and-drop
 - **Tailwind CSS v4** + shadcn/ui
-
-<img width="1896" height="926" alt="Screenshot 2026-06-06 at 10 16 13 PM" src="https://github.com/user-attachments/assets/1563df8e-f408-4873-bfda-ab290e34b20f" />
-<img width="1907" height="931" alt="Screenshot 2026-06-06 at 10 10 25 PM" src="https://github.com/user-attachments/assets/150b9d85-77e3-4bdf-abeb-7c1065a02d8c" />
-<img width="1913" height="933" alt="Screenshot 2026-06-06 at 10 10 08 PM" src="https://github.com/user-attachments/assets/3e2a106f-776a-47a6-b351-9a49a1364b5c" />
 
 ## Getting started
 
