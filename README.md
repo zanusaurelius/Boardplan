@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Boardplan
 
-## Getting Started
+A social media content planning tool with AI-powered caption generation. Plan, organize, and generate platform-native captions for posts across Instagram, TikTok, YouTube, Facebook, Twitter, Snapchat, and Pinterest — all from a single drag-and-drop grid.
 
-First, run the development server:
+## Features
+
+- **Drag-and-drop post grid** — reorder posts visually, with per-platform views that show how content maps across channels
+- **AI caption generation** — Claude generates platform-native captions tuned to each platform's tone, format, and character limits; bulk-generate across all platforms at once
+- **Slide-in post editor** — edit captions, titles, and hashtags per platform with auto-save
+- **Bulk actions** — multi-select posts for batch caption generation or status updates (draft → ready → posted)
+- **Media library** — drag-and-drop image and video upload; videos auto-transcode to MP4 and auto-transcribe via Whisper so the transcript feeds into AI caption context
+- **Dark / light theme**
+
+## Tech stack
+
+- **Next.js 16** / **React 19** / **TypeScript**
+- **SQLite** via Prisma + libSQL
+- **Claude API** (Anthropic) — caption generation
+- **Whisper API** (OpenAI) — video transcription
+- **dnd-kit** — drag-and-drop
+- **Tailwind CSS v4** + shadcn/ui
+
+## Getting started
+
+### Prerequisites
+
+- Node.js 20+
+- An Anthropic API key (for caption generation)
+- An OpenAI API key (for video transcription)
+
+### Setup
+
+```bash
+npm install
+```
+
+Create a `.env.local` file:
+
+```env
+ANTHROPIC_API_KEY=your_anthropic_key
+OPENAI_API_KEY=your_openai_key
+```
+
+Run the database migrations:
+
+```bash
+npx prisma migrate deploy
+```
+
+Optionally seed with sample posts:
+
+```bash
+npm run seed
+```
+
+Start the dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Database
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+SQLite via Prisma. Schema lives in `prisma/schema.prisma`. Three models: `Post`, `Media`, and `Caption` (one caption row per post per platform).
 
-## Learn More
+Migrations: `prisma/migrations/`
 
-To learn more about Next.js, take a look at the following resources:
+## Project structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+app/
+  api/         # Route handlers (posts, captions, media, AI)
+  page.tsx     # Main grid view
+components/
+  grid/        # DraggableGrid, PlatformGrid, PostCard
+  post/        # PostEditor, CaptionEditor, BulkGenerateModal
+  library/     # MediaLibrary, UploadZone
+  layout/      # Sidebar, TopBar, ThemeProvider
+lib/
+  claude.ts    # Caption generation
+  transcribe.ts # Whisper transcription
+  video.ts     # Video transcoding
+  db.ts        # Prisma client
+  storage.ts   # File storage helpers
+public/uploads/ # Uploaded media files
+```
