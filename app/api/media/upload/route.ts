@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { join } from "path";
 import { prisma } from "@/lib/db";
