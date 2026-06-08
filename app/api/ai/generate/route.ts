@@ -1,9 +1,52 @@
 import { NextResponse } from "next/server";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import { generateCaption } from "@/lib/claude";
 
+const RATE_LIMIT = 20;        // max requests
+const WINDOW_MS = 60 * 60 * 1000; // per hour
+
+async function checkRateLimit(ip: string): Promise<boolean> {
+  const now = new Date();
+
+  const record = await prisma.rateLimit.upsert({
+    where: { ip },
+    create: { ip, count: 1, windowStart: now },
+    update: {
+      count: { increment: 1 },
+      windowStart: now, // overwritten below if window is still active
+    },
+  });
+
+  // If the window has expired, reset it
+  const windowAge = now.getTime() - record.windowStart.getTime();
+  if (windowAge > WINDOW_MS) {
+    await prisma.rateLimit.update({
+      where: { ip },
+      data: { count: 1, windowStart: now },
+    });
+    return true;
+  }
+
+  return record.count <= RATE_LIMIT;
+}
+
 export async function POST(request: Request) {
   try {
+    const headersList = await headers();
+    const ip =
+      headersList.get("x-forwarded-for")?.split(",")[0].trim() ??
+      headersList.get("x-real-ip") ??
+      "unknown";
+
+    const allowed = await checkRateLimit(ip);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const {
       postIds,
@@ -12,7 +55,7 @@ export async function POST(request: Request) {
     }: {
       postIds: string[];
       platforms: string[];
-      descriptions?: Record<string, string>; // postId -> description text
+      descriptions?: Record<string, string>;
     } = body;
 
     if (!postIds || !platforms || postIds.length === 0 || platforms.length === 0) {

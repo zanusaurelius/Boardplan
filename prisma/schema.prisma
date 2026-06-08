@@ -6,7 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Post {
@@ -33,6 +34,13 @@ model Media {
   height       Int?
   duration     Float?
   createdAt    DateTime @default(now())
+}
+
+model RateLimit {
+  id          String   @id @default(cuid())
+  ip          String   @unique
+  count       Int      @default(0)
+  windowStart DateTime @default(now())
 }
 
 model Caption {
