@@ -1,11 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import { join } from "path";
 import { prisma } from "@/lib/db";
 import { saveFile } from "@/lib/storage";
-import { transcribeVideo } from "@/lib/transcribe";
-import { transcodeToMp4, isVideoMimeType } from "@/lib/video";
 
 export async function POST(request: Request) {
   try {
@@ -45,30 +42,9 @@ export async function POST(request: Request) {
       // Save file to filesystem
       const savedFile = await saveFile(file);
 
-      // Transcode videos to H.264 MP4 for browser compatibility
-      if (isVideoMimeType(savedFile.mimeType)) {
-        try {
-          const originalPath = join(process.cwd(), "public", "uploads", savedFile.filename);
-          const transcoded = await transcodeToMp4(originalPath, savedFile.filename);
-          savedFile.filename = transcoded.filename;
-          savedFile.mimeType = transcoded.mimeType;
-        } catch (err) {
-          console.error("Transcode failed:", err);
-          warnings.push(`Video transcoding failed for "${file.name}" — original format kept, playback may not work in all browsers`);
-        }
-      }
-
-      // Auto-transcribe videos
-      let description = "";
-      if (isVideoMimeType(savedFile.mimeType)) {
-        try {
-          const videoPath = join(process.cwd(), "public", "uploads", savedFile.filename);
-          description = await transcribeVideo(videoPath);
-        } catch (err) {
-          console.error("Transcription failed:", err);
-          warnings.push(`Auto-transcription failed for "${file.name}" — add a description manually to improve AI captions`);
-        }
-      }
+      // Video transcoding and transcription require ffmpeg which isn't
+      // available on serverless — skip silently.
+      const description = "";
 
       // Create post with media
       const post = await prisma.post.create({
