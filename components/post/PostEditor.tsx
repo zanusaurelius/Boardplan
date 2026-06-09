@@ -153,7 +153,11 @@ export default function PostEditor({
   const isLocked = post.status === "ready" || post.status === "posted";
   const firstMedia = post.media[0];
   const isVideo = firstMedia?.mimeType?.startsWith("video/");
-  const mediaUrl = firstMedia ? `/uploads/${firstMedia.filename}` : null;
+  const mediaUrl = firstMedia
+    ? firstMedia.filename.startsWith("http")
+      ? firstMedia.filename
+      : `/uploads/${firstMedia.filename}`
+    : null;
 
   const getCaption = (platform: string) =>
     post.captions.find((c) => c.platform === platform);
@@ -336,7 +340,7 @@ export default function PostEditor({
                   <div key={m.id} className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-[var(--bg-base)]">
                     {m.mimeType.startsWith("video/") ? (
                       <video
-                        src={`/uploads/${m.filename}`}
+                        src={m.filename.startsWith("http") ? m.filename : `/uploads/${m.filename}`}
                         className="w-full h-full object-cover"
                         muted
                         preload="metadata"
@@ -344,7 +348,7 @@ export default function PostEditor({
                     ) : (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={`/uploads/${m.filename}`}
+                        src={m.filename.startsWith("http") ? m.filename : `/uploads/${m.filename}`}
                         alt=""
                         className="w-full h-full object-cover"
                       />

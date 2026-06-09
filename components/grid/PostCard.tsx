@@ -69,7 +69,11 @@ export default function PostCard({
 
   const firstMedia = post.media[0];
   const isVideo = firstMedia?.mimeType?.startsWith("video/");
-  const mediaUrl = firstMedia ? `/uploads/${firstMedia.filename}` : null;
+  const mediaUrl = firstMedia
+    ? firstMedia.filename.startsWith("http")
+      ? firstMedia.filename
+      : `/uploads/${firstMedia.filename}`
+    : null;
 
   const platformsWithCaptions = post.captions
     .filter((c) => c.caption || c.hashtags)

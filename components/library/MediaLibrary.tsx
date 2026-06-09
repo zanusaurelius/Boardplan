@@ -72,7 +72,11 @@ export default function MediaLibrary({
             {posts.map((post) => {
               const firstMedia = post.media[0];
               const isVideo = firstMedia?.mimeType?.startsWith("video/");
-              const mediaUrl = firstMedia ? `/uploads/${firstMedia.filename}` : null;
+              const mediaUrl = firstMedia
+                ? firstMedia.filename.startsWith("http")
+                  ? firstMedia.filename
+                  : `/uploads/${firstMedia.filename}`
+                : null;
               const captionCount = post.captions.filter(
                 (c) => c.caption || c.hashtags
               ).length;
