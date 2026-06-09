@@ -120,7 +120,10 @@ export default function Home() {
         body: formData,
       });
 
-      if (!res.ok) throw new Error("Upload failed");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Upload failed");
+      }
       const data = await res.json();
 
       setPosts((prev) => [...data.posts, ...prev]);
@@ -130,8 +133,9 @@ export default function Home() {
           toast.warning(warning);
         }
       }
-    } catch {
-      toast.error("Upload failed. Please try again.", { id: toastId });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Upload failed";
+      toast.error(msg, { id: toastId });
     } finally {
       setIsUploading(false);
     }

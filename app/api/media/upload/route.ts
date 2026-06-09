@@ -72,9 +72,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ posts: createdPosts, warnings }, { status: 201 });
   } catch (error) {
-    console.error("Error uploading media:", error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Error uploading media:", message, error);
     return NextResponse.json(
-      { error: "Failed to upload media" },
+      { error: "Failed to upload media", detail: message },
       { status: 500 }
     );
   }
