@@ -6,7 +6,12 @@ const globalForPrisma = globalThis as unknown as {
 
 function getPrismaInstance(): PrismaClient {
   if (!globalForPrisma.prisma) {
-    globalForPrisma.prisma = new PrismaClient();
+    globalForPrisma.prisma = new PrismaClient({
+      datasourceUrl:
+        process.env.DATABASE_URL ||
+        process.env.POSTGRES_PRISMA_URL ||
+        process.env.POSTGRES_URL,
+    });
   }
   return globalForPrisma.prisma;
 }
