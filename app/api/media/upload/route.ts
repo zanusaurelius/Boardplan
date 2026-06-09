@@ -46,28 +46,26 @@ export async function POST(request: Request) {
       // available on serverless — skip silently.
       const description = "";
 
-      // Create post with media
+      // Create post then media separately (HTTP mode doesn't support transactions)
       const post = await prisma.post.create({
         data: {
           title: file.name.replace(/\.[^.]+$/, ""),
           description,
           order: currentOrder++,
-          media: {
-            create: {
-              filename: savedFile.filename,
-              originalName: savedFile.originalName,
-              mimeType: savedFile.mimeType,
-              size: savedFile.size,
-            },
-          },
-        },
-        include: {
-          media: true,
-          captions: true,
         },
       });
 
-      createdPosts.push(post);
+      const media = await prisma.media.create({
+        data: {
+          postId: post.id,
+          filename: savedFile.filename,
+          originalName: savedFile.originalName,
+          mimeType: savedFile.mimeType,
+          size: savedFile.size,
+        },
+      });
+
+      createdPosts.push({ ...post, media: [media], captions: [] });
     }
 
     return NextResponse.json({ posts: createdPosts, warnings }, { status: 201 });
