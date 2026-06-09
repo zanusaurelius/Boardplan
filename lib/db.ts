@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaNeonHttp } from "@prisma/adapter-neon";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -6,12 +7,13 @@ const globalForPrisma = globalThis as unknown as {
 
 function getPrismaInstance(): PrismaClient {
   if (!globalForPrisma.prisma) {
-    globalForPrisma.prisma = new PrismaClient({
-      datasourceUrl:
-        process.env.DATABASE_URL ||
-        process.env.POSTGRES_PRISMA_URL ||
-        process.env.POSTGRES_URL,
-    });
+    const connectionString =
+      process.env.DATABASE_URL ||
+      process.env.POSTGRES_PRISMA_URL ||
+      process.env.POSTGRES_URL ||
+      "";
+    const adapter = new PrismaNeonHttp(connectionString, {});
+    globalForPrisma.prisma = new PrismaClient({ adapter });
   }
   return globalForPrisma.prisma;
 }
