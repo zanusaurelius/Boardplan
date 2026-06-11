@@ -219,7 +219,7 @@ export default function Home() {
     }
   };
 
-  // Handle description save
+  // Handle description save (manual edits via textarea blur)
   const handleSaveDescription = async (postId: string, description: string) => {
     try {
       const res = await fetch(`/api/posts/${postId}`, {
@@ -234,6 +234,12 @@ export default function Home() {
     } catch {
       toast.error("Failed to save description");
     }
+  };
+
+  // Handle analyze complete — DB already updated by the API; just sync local state
+  const handleAnalyzeComplete = (postId: string, description: string) => {
+    setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, description } : p));
+    setEditingPost((prev) => prev?.id === postId ? { ...prev, description } : prev);
   };
 
   // Handle rename (updates title + renames file on disk)
@@ -544,6 +550,7 @@ export default function Home() {
         generatingPlatforms={generatingPlatforms}
         onRenamePost={handleRenamePost}
         onSaveDescription={handleSaveDescription}
+        onAnalyzeComplete={handleAnalyzeComplete}
         onDeletePost={handleDeletePost}
       />
 

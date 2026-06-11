@@ -60,6 +60,7 @@ interface PostEditorProps {
   generatingPlatforms: Set<string>;
   onRenamePost?: (postId: string, title: string) => Promise<void>;
   onSaveDescription?: (postId: string, description: string) => Promise<void>;
+  onAnalyzeComplete?: (postId: string, description: string) => void;
   onDeletePost?: (postId: string) => Promise<void>;
 }
 
@@ -85,6 +86,7 @@ export default function PostEditor({
   generatingPlatforms,
   onRenamePost,
   onSaveDescription,
+  onAnalyzeComplete,
   onDeletePost,
 }: PostEditorProps) {
   const [activePlatform, setActivePlatform] = useState("instagram");
@@ -177,7 +179,7 @@ export default function PostEditor({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Analysis failed");
-      await onSaveDescription?.(post.id, data.description);
+      onAnalyzeComplete?.(post.id, data.description);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Analysis failed";
       toast.error(msg);
@@ -187,6 +189,10 @@ export default function PostEditor({
   };
 
   const handleGenerateAll = async () => {
+    if (!post.description?.trim()) {
+      toast.error("Add a description first — click \"Analyze image\" or write one yourself.");
+      return;
+    }
     setIsGeneratingAll(true);
     await onGenerateAllPlatforms(post.id, tone);
     setIsGeneratingAll(false);
@@ -467,7 +473,13 @@ export default function PostEditor({
               <Button
                 variant="outline"
                 className="w-full border-violet-600/30 text-violet-400 hover:bg-violet-600/10 hover:border-violet-500/50 bg-transparent"
-                onClick={() => onGenerateAI(post.id, activePlatform, tone)}
+                onClick={() => {
+                  if (!post.description?.trim()) {
+                    toast.error("Add a description first — click \"Analyze image\" or write one yourself.");
+                    return;
+                  }
+                  onGenerateAI(post.id, activePlatform, tone);
+                }}
                 disabled={generatingPlatforms.has(activePlatform) || isGeneratingAll}
               >
                 {generatingPlatforms.has(activePlatform) ? (
