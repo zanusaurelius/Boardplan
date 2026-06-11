@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
+import { SESSION_COOKIE } from "@/lib/sessionConfig";
 
-export const SESSION_COOKIE = "bp_session";
+export { SESSION_COOKIE };
 
 export async function getSessionId(): Promise<string> {
   const store = await cookies();
