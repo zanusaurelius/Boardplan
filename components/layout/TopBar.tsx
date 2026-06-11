@@ -55,13 +55,13 @@ export default function TopBar({
   return (
     <header className="h-14 bg-[var(--bg-panel)] border-b border-[var(--border-subtle)] flex items-center px-6 gap-4 shrink-0">
       {/* Logo */}
-      <div className="flex items-center gap-2 mr-2">
-        <Image src="/logo.png" alt="Boardplan" width={28} height={28} className="rounded-lg" />
-        <span className="font-bold text-[var(--text-primary)] text-lg tracking-tight">boardplan</span>
+      <div className="flex items-center gap-2 mr-2 shrink-0">
+        <Image src="/icon-512.png" alt="Boardplan" width={28} height={28} className="rounded-lg" />
+        <span className="hidden sm:block font-bold text-[var(--text-primary)] text-lg tracking-tight">boardplan</span>
       </div>
 
-      <div className="h-5 w-px bg-[var(--border-light)]" />
-      <span className="text-[var(--text-muted)] text-sm">
+      <div className="hidden sm:block h-5 w-px bg-[var(--border-light)]" />
+      <span className="hidden sm:block text-[var(--text-muted)] text-sm truncate">
         {view === "grid" ? PLATFORM_LABELS[platform] : "Media Library"}
       </span>
 

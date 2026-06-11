@@ -221,6 +221,9 @@ export default function Home() {
 
   // Handle description save (manual edits via textarea blur)
   const handleSaveDescription = async (postId: string, description: string) => {
+    // Update local state immediately so the UI reflects the change
+    setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, description } : p));
+    setEditingPost((prev) => prev?.id === postId ? { ...prev, description } : prev);
     try {
       const res = await fetch(`/api/posts/${postId}`, {
         method: "PATCH",
@@ -228,9 +231,6 @@ export default function Home() {
         body: JSON.stringify({ description }),
       });
       if (!res.ok) throw new Error("Save failed");
-      const updated = await res.json();
-      setPosts((prev) => prev.map((p) => (p.id === postId ? updated : p)));
-      if (editingPost?.id === postId) setEditingPost(updated);
     } catch {
       toast.error("Failed to save description");
     }
