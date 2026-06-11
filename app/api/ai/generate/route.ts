@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import { generateCaption, type CaptionTone } from "@/lib/claude";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { getSessionId } from "@/lib/session";
 
 const LIMIT = 10;
 const WINDOW_MS = 60 * 60 * 1000;
@@ -55,6 +56,7 @@ export async function POST(request: Request) {
       );
     }
 
+    const sessionId = await getSessionId();
     const results: Record<string, Record<string, { title: string; caption: string; hashtags: string }>> = {};
 
     for (const postId of postIds) {
@@ -66,9 +68,9 @@ export async function POST(request: Request) {
           const generated = await generateCaption(platform, description, tone ?? "funny");
 
           await prisma.caption.upsert({
-            where: { postId_platform: { postId, platform } },
+            where: { postId_platform_sessionId: { postId, platform, sessionId } },
             update: { title: generated.title, caption: generated.caption, hashtags: generated.hashtags },
-            create: { postId, platform, title: generated.title, caption: generated.caption, hashtags: generated.hashtags },
+            create: { postId, platform, sessionId, title: generated.title, caption: generated.caption, hashtags: generated.hashtags },
           });
 
           results[postId][platform] = generated;

@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getSessionId } from "@/lib/session";
 
 export async function POST(request: Request) {
   try {
@@ -12,8 +13,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "postId and platform are required" }, { status: 400 });
     }
 
+    const sessionId = await getSessionId();
+
     const result = await prisma.caption.upsert({
-      where: { postId_platform: { postId, platform } },
+      where: { postId_platform_sessionId: { postId, platform, sessionId } },
       update: {
         title: title ?? "",
         caption: caption ?? "",
@@ -22,6 +25,7 @@ export async function POST(request: Request) {
       create: {
         postId,
         platform,
+        sessionId,
         title: title ?? "",
         caption: caption ?? "",
         hashtags: hashtags ?? "",

@@ -2,14 +2,19 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getSessionId } from "@/lib/session";
 
 export async function GET() {
   try {
+    const sessionId = await getSessionId();
     const posts = await prisma.post.findMany({
+      where: { OR: [{ isDemo: true }, { sessionId }] },
       orderBy: { order: "asc" },
       include: {
         media: true,
-        captions: true,
+        captions: {
+          where: { OR: [{ sessionId: "" }, { sessionId }] },
+        },
       },
     });
     return NextResponse.json(posts);

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { saveFile } from "@/lib/storage";
 import { analyzeImage } from "@/lib/claude";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { getSessionId } from "@/lib/session";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const GLOBAL_ANALYZE_LIMIT = 50;
@@ -19,6 +20,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No files provided" }, { status: 400 });
     }
 
+    const sessionId = await getSessionId();
     const createdPosts = [];
     const warnings: string[] = [];
 
@@ -75,6 +77,7 @@ export async function POST(request: Request) {
           title: file.name.replace(/\.[^.]+$/, ""),
           description,
           order: currentOrder++,
+          sessionId: sessionId || undefined,
         },
       });
 
