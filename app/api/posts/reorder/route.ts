@@ -15,8 +15,8 @@ export async function PATCH(request: Request) {
       );
     }
 
-    // Update each post's order in a transaction
-    await prisma.$transaction(
+    // Neon HTTP adapter doesn't support transactions — run updates concurrently
+    await Promise.all(
       orderedIds.map((id, index) =>
         prisma.post.update({
           where: { id },
