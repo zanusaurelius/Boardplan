@@ -80,14 +80,16 @@ export default function PostCard({
     .filter((c) => c.caption || c.hashtags)
     .map((c) => c.platform);
 
-  const handleMouseEnter = () => {
+  const handlePointerEnter = (e: React.PointerEvent) => {
+    if (e.pointerType !== "mouse") return; // touch: never set hover (onMouseLeave won't fire reliably)
     setIsHovered(true);
     if (isVideo && videoRef.current) {
       videoRef.current.play().catch(() => {});
     }
   };
 
-  const handleMouseLeave = () => {
+  const handlePointerLeave = (e: React.PointerEvent) => {
+    if (e.pointerType !== "mouse") return;
     setIsHovered(false);
     if (isVideo && videoRef.current) {
       videoRef.current.pause();
@@ -117,8 +119,8 @@ export default function PostCard({
         post.status === "posted" ? "cursor-default" : (!isDragging && "hover:border-[var(--border-light)] hover:shadow-lg hover:shadow-black/30")
       )}
       style={{ aspectRatio }}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
       onClick={() => onClick(post)}
     >
       {/* Media */}
