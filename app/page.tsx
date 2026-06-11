@@ -198,18 +198,13 @@ export default function Home() {
     // Persist full order session-locally so it survives page refresh
     localStorage.setItem("bp_post_order", JSON.stringify(orderedIds));
 
-    // Also persist DB order for visitor's own posts (doesn't affect other visitors)
-    try {
-      const res = await fetch("/api/posts/reorder", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderedIds }),
-      });
-      if (!res.ok) throw new Error("Reorder failed");
-    } catch {
-      toast.error("Failed to save order");
-      fetchPosts();
-    }
+    // Best-effort: persist DB order for visitor's own posts.
+    // localStorage is the real source of truth for order, so API failures are silent.
+    fetch("/api/posts/reorder", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderedIds }),
+    }).catch(() => {});
   };
 
   // Handle caption save — optimistic update first so state survives panel close/reopen
