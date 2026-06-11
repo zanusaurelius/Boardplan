@@ -210,35 +210,118 @@ export default function PostEditor({
       {/* Panel - slides in from right */}
       <div className="absolute right-0 top-0 bottom-0 w-full sm:w-[720px] bg-[var(--bg-panel)] border-l border-[var(--border-subtle)] flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-subtle)] shrink-0">
-          {/* Prev/Next nav */}
-          <div className="flex items-center gap-1 mr-3 shrink-0">
-            <button
-              onClick={() => hasPrev && onNavigate(posts[currentIndex - 1])}
-              disabled={!hasPrev}
-              title="Previous post (←)"
-              className="p-1.5 rounded-lg hover:bg-[var(--hover-light)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <span className="text-[var(--text-faint)] text-xs tabular-nums">
-              {currentIndex + 1}/{posts.length}
-            </span>
-            <button
-              onClick={() => hasNext && onNavigate(posts[currentIndex + 1])}
-              disabled={!hasNext}
-              title="Next post (→)"
-              className="p-1.5 rounded-lg hover:bg-[var(--hover-light)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
+        <div className="px-5 py-3 border-b border-[var(--border-subtle)] shrink-0">
+          {/* Row 1: Nav + Actions */}
+          <div className="flex items-center">
+            {/* Prev/Next nav */}
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={() => hasPrev && onNavigate(posts[currentIndex - 1])}
+                disabled={!hasPrev}
+                title="Previous post (←)"
+                className="p-1.5 rounded-lg hover:bg-[var(--hover-light)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <span className="text-[var(--text-faint)] text-xs tabular-nums">
+                {currentIndex + 1}/{posts.length}
+              </span>
+              <button
+                onClick={() => hasNext && onNavigate(posts[currentIndex + 1])}
+                disabled={!hasNext}
+                title="Next post (→)"
+                className="p-1.5 rounded-lg hover:bg-[var(--hover-light)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Title inline on sm+ */}
+            <div className="hidden sm:block flex-1 min-w-0 mx-3">
+              {isEditingTitle ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={titleInputRef}
+                    value={titleDraft}
+                    onChange={(e) => setTitleDraft(e.target.value)}
+                    onKeyDown={handleTitleKeyDown}
+                    onBlur={handleTitleSave}
+                    disabled={isRenaming}
+                    className="flex-1 bg-[var(--bg-raised)] border border-violet-500/60 rounded-md px-2 py-1 text-[var(--text-primary)] text-sm font-semibold outline-none min-w-0"
+                  />
+                  {isRenaming && (
+                    <span className="text-[var(--text-muted)] text-xs shrink-0">Renaming…</span>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={isLocked ? undefined : handleTitleEdit}
+                  title={isLocked ? undefined : "Click to rename"}
+                  className={cn("group flex items-center gap-1.5 max-w-full text-left", isLocked && "cursor-default")}
+                >
+                  <h2 className="text-[var(--text-primary)] font-semibold text-base truncate group-hover:text-violet-300 transition-colors">
+                    {post.title || firstMedia?.originalName || "Edit Post"}
+                  </h2>
+                  {!isLocked && (
+                    <svg className="w-3.5 h-3.5 text-[var(--text-faint)] group-hover:text-violet-400 shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  )}
+                </button>
+              )}
+              <p className="text-[var(--text-muted)] text-xs mt-0.5">
+                {post.media.length} file{post.media.length !== 1 ? "s" : ""}
+              </p>
+            </div>
+
+            <div className="flex-1 sm:hidden" />
+
+            <div className="flex items-center gap-2">
+              {onDeletePost && post.status !== "posted" && (
+                <button
+                  onClick={async () => {
+                    if (!confirm("Delete this post?")) return;
+                    await onDeletePost(post.id);
+                    onClose();
+                  }}
+                  title="Delete post"
+                  className="p-1.5 rounded-lg hover:bg-red-500/10 text-[var(--text-tertiary)] hover:text-red-400 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              )}
+              <Select
+                value={post.status}
+                onValueChange={(val) => val && onUpdateStatus(post.id, val)}
+              >
+                <SelectTrigger className="h-8 w-24 bg-[var(--bg-card)] border-[var(--border-light)] text-[var(--text-primary)] text-xs capitalize">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[var(--bg-card)] border-[var(--border-light)]">
+                  <SelectItem value="draft" className="text-yellow-400 text-xs">Draft</SelectItem>
+                  <SelectItem value="ready" className="text-green-400 text-xs">Ready</SelectItem>
+                  <SelectItem value="posted" className="text-blue-400 text-xs">Posted</SelectItem>
+                </SelectContent>
+              </Select>
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-lg hover:bg-[var(--hover-light)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
 
-          <div className="flex-1 min-w-0">
+          {/* Row 2: Title — mobile only, full width */}
+          <div className="sm:hidden mt-2">
             {isEditingTitle ? (
               <div className="flex items-center gap-2">
                 <input
@@ -258,7 +341,7 @@ export default function PostEditor({
               <button
                 onClick={isLocked ? undefined : handleTitleEdit}
                 title={isLocked ? undefined : "Click to rename"}
-                className={cn("group flex items-center gap-1.5 max-w-full text-left", isLocked && "cursor-default")}
+                className={cn("group flex items-center gap-1.5 w-full text-left", isLocked && "cursor-default")}
               >
                 <h2 className="text-[var(--text-primary)] font-semibold text-base truncate group-hover:text-violet-300 transition-colors">
                   {post.title || firstMedia?.originalName || "Edit Post"}
@@ -273,44 +356,6 @@ export default function PostEditor({
             <p className="text-[var(--text-muted)] text-xs mt-0.5">
               {post.media.length} file{post.media.length !== 1 ? "s" : ""}
             </p>
-          </div>
-          <div className="flex items-center gap-2 ml-4">
-            {onDeletePost && post.status !== "posted" && (
-              <button
-                onClick={async () => {
-                  if (!confirm("Delete this post?")) return;
-                  await onDeletePost(post.id);
-                  onClose();
-                }}
-                title="Delete post"
-                className="p-1.5 rounded-lg hover:bg-red-500/10 text-[var(--text-tertiary)] hover:text-red-400 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            )}
-            <Select
-              value={post.status}
-              onValueChange={(val) => val && onUpdateStatus(post.id, val)}
-            >
-              <SelectTrigger className="h-8 w-28 bg-[var(--bg-card)] border-[var(--border-light)] text-[var(--text-primary)] text-xs capitalize">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-[var(--bg-card)] border-[var(--border-light)]">
-                <SelectItem value="draft" className="text-yellow-400 text-xs">Draft</SelectItem>
-                <SelectItem value="ready" className="text-green-400 text-xs">Ready</SelectItem>
-                <SelectItem value="posted" className="text-blue-400 text-xs">Posted</SelectItem>
-              </SelectContent>
-            </Select>
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-[var(--hover-light)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
           </div>
         </div>
 
