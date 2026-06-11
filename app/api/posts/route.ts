@@ -13,7 +13,7 @@ export async function GET() {
       include: {
         media: true,
         captions: {
-          where: { OR: [{ sessionId: "" }, { sessionId }] },
+          where: { sessionId: sessionId || "__no_session__" },
         },
       },
     });

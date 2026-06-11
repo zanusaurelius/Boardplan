@@ -12,8 +12,8 @@ export async function GET(request: Request) {
   // Delete all visitor-uploaded posts (non-demo), cascading to their media and captions
   const deleted = await prisma.post.deleteMany({ where: { isDemo: false } });
 
-  // Delete visitor-generated captions on demo posts (session-scoped captions only)
-  await prisma.caption.deleteMany({ where: { sessionId: { not: "" } } });
+  // Delete all visitor-generated captions on demo posts
+  await prisma.caption.deleteMany({});
 
   // Reset all rate limit counters
   await prisma.rateLimit.deleteMany({});
