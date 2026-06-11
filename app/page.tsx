@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import Sidebar, { type Platform } from "@/components/layout/Sidebar";
 import TopBar from "@/components/layout/TopBar";
 import PlatformGrid from "@/components/grid/PlatformGrid";
@@ -459,8 +460,54 @@ export default function Home() {
           onUpdateSelectedStatus={handleBulkStatusUpdate}
         />
 
+        {/* Mobile nav — hidden on sm+ where sidebar takes over */}
+        <div className="sm:hidden flex flex-col border-b border-[var(--border-subtle)] bg-[var(--bg-panel)]">
+          <div className="flex border-b border-[var(--border-subtle)]">
+            <button
+              onClick={() => setView("grid")}
+              className={cn("flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors",
+                view === "grid" ? "text-violet-400 border-b-2 border-violet-500" : "text-[var(--text-secondary)]"
+              )}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+              Grid View
+            </button>
+            <button
+              onClick={() => setView("library")}
+              className={cn("flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors",
+                view === "library" ? "text-violet-400 border-b-2 border-violet-500" : "text-[var(--text-secondary)]"
+              )}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Media Library
+            </button>
+          </div>
+          {view === "grid" && (
+            <div className="flex overflow-x-auto gap-1 px-3 py-2 scrollbar-none">
+              {(["instagram","tiktok","youtube","facebook","snapchat","twitter","pinterest"] as const).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setActivePlatform(p)}
+                  className={cn(
+                    "shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-all",
+                    activePlatform === p
+                      ? "bg-violet-600 text-white"
+                      : "bg-[var(--hover-subtle)] text-[var(--text-secondary)]"
+                  )}
+                >
+                  {p === "twitter" ? "Twitter / X" : p.charAt(0).toUpperCase() + p.slice(1)}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="flex-1 overflow-y-auto">
-          <div className="p-6">
+          <div className="p-3 sm:p-6">
             {view === "grid" ? (
               <PlatformGrid
                 platform={activePlatform}

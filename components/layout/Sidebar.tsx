@@ -46,7 +46,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const { theme, toggle } = useTheme();
   return (
-    <aside className="w-56 bg-[var(--bg-panel)] border-r border-[var(--border-subtle)] flex flex-col h-full shrink-0">
+    <aside className="hidden sm:flex w-56 bg-[var(--bg-panel)] border-r border-[var(--border-subtle)] flex-col h-full shrink-0">
       <div className="p-4 border-b border-[var(--border-subtle)]">
         <div className="flex flex-col gap-1">
           <button
