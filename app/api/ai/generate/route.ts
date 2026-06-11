@@ -3,35 +3,13 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
-import { generateCaption } from "@/lib/claude";
+import { generateCaption, type CaptionTone } from "@/lib/claude";
+import { checkRateLimit } from "@/lib/rateLimit";
 
-const RATE_LIMIT = 20;        // max requests
-const WINDOW_MS = 60 * 60 * 1000; // per hour
-
-async function checkRateLimit(ip: string): Promise<boolean> {
-  const now = new Date();
-
-  const record = await prisma.rateLimit.upsert({
-    where: { ip },
-    create: { ip, count: 1, windowStart: now },
-    update: {
-      count: { increment: 1 },
-      windowStart: now, // overwritten below if window is still active
-    },
-  });
-
-  // If the window has expired, reset it
-  const windowAge = now.getTime() - record.windowStart.getTime();
-  if (windowAge > WINDOW_MS) {
-    await prisma.rateLimit.update({
-      where: { ip },
-      data: { count: 1, windowStart: now },
-    });
-    return true;
-  }
-
-  return record.count <= RATE_LIMIT;
-}
+const LIMIT = 10;
+const WINDOW_MS = 60 * 60 * 1000;
+const GLOBAL_LIMIT = 100;
+const GLOBAL_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export async function POST(request: Request) {
   try {
@@ -41,10 +19,18 @@ export async function POST(request: Request) {
       headersList.get("x-real-ip") ??
       "unknown";
 
-    const allowed = await checkRateLimit(ip);
+    const globalAllowed = await checkRateLimit("global:generate", GLOBAL_LIMIT, GLOBAL_WINDOW_MS);
+    if (!globalAllowed) {
+      return NextResponse.json(
+        { error: "This demo has hit its daily generation limit — check back tomorrow!" },
+        { status: 429 }
+      );
+    }
+
+    const allowed = await checkRateLimit(`generate:${ip}`, LIMIT, WINDOW_MS);
     if (!allowed) {
       return NextResponse.json(
-        { error: "Too many requests. Please try again later." },
+        { error: "Too many requests. Please try again in an hour." },
         { status: 429 }
       );
     }
@@ -54,10 +40,12 @@ export async function POST(request: Request) {
       postIds,
       platforms,
       descriptions,
+      tone,
     }: {
       postIds: string[];
       platforms: string[];
       descriptions?: Record<string, string>;
+      tone?: CaptionTone;
     } = body;
 
     if (!postIds || !platforms || postIds.length === 0 || platforms.length === 0) {
@@ -75,7 +63,7 @@ export async function POST(request: Request) {
 
       for (const platform of platforms) {
         try {
-          const generated = await generateCaption(platform, description);
+          const generated = await generateCaption(platform, description, tone ?? "funny");
 
           await prisma.caption.upsert({
             where: { postId_platform: { postId, platform } },

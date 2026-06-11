@@ -3,6 +3,12 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { saveFile } from "@/lib/storage";
+import { analyzeImage } from "@/lib/claude";
+import { checkRateLimit } from "@/lib/rateLimit";
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const GLOBAL_ANALYZE_LIMIT = 50;
+const GLOBAL_ANALYZE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export async function POST(request: Request) {
   try {
@@ -39,12 +45,29 @@ export async function POST(request: Request) {
         continue; // Skip invalid files
       }
 
+      if (file.size > MAX_FILE_SIZE) {
+        warnings.push(`"${file.name}" is too large — max upload size is 10 MB`);
+        continue;
+      }
+
       // Save file to filesystem
       const savedFile = await saveFile(file);
 
-      // Video transcoding and transcription require ffmpeg which isn't
-      // available on serverless — skip silently.
-      const description = "";
+      // Analyze images with Claude vision to pre-fill the description.
+      // Videos can't be analyzed — leave blank for the user to fill in.
+      // Skip analysis if the global daily limit is exhausted (upload still succeeds).
+      const isImage = file.type.startsWith("image/");
+      let description = "";
+      if (isImage) {
+        const analyzeAllowed = await checkRateLimit(
+          "global:analyze",
+          GLOBAL_ANALYZE_LIMIT,
+          GLOBAL_ANALYZE_WINDOW_MS
+        );
+        if (analyzeAllowed) {
+          description = await analyzeImage(savedFile.filename);
+        }
+      }
 
       // Create post then media separately (HTTP mode doesn't support transactions)
       const post = await prisma.post.create({
