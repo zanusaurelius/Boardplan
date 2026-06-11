@@ -52,13 +52,18 @@ export default function Home() {
   const [isDragOverPage, setIsDragOverPage] = useState(false);
   const dragCounterRef = useRef(0);
 
-  // Fetch posts
+  // Fetch posts — re-applies localStorage descriptions for demo posts after load
   const fetchPosts = useCallback(async () => {
     try {
       const res = await fetch("/api/posts");
       if (!res.ok) throw new Error("Failed to fetch");
-      const data = await res.json();
-      setPosts(data);
+      const data: Post[] = await res.json();
+      const withLocalDescriptions = data.map((p) => {
+        if (!p.isDemo) return p;
+        const stored = localStorage.getItem(`bp_desc_${p.id}`);
+        return stored ? { ...p, description: stored } : p;
+      });
+      setPosts(withLocalDescriptions);
     } catch {
       toast.error("Failed to load posts");
     }
@@ -177,7 +182,7 @@ export default function Home() {
     }
   };
 
-  // Handle caption save
+  // Handle caption save — optimistic update first so state survives panel close/reopen
   const handleSaveCaption = async (
     postId: string,
     platform: string,
@@ -185,6 +190,18 @@ export default function Home() {
     caption: string,
     hashtags: string
   ) => {
+    const optimistic = { id: `opt-${postId}-${platform}`, platform, title, caption, hashtags };
+    const apply = (captions: Caption[]) => [
+      ...captions.filter((c) => c.platform !== platform),
+      optimistic,
+    ];
+    setPosts((prev) =>
+      prev.map((p) => p.id !== postId ? p : { ...p, captions: apply(p.captions) })
+    );
+    setEditingPost((prev) =>
+      prev?.id !== postId ? prev : { ...prev, captions: apply(prev.captions) }
+    );
+
     try {
       const res = await fetch("/api/captions", {
         method: "POST",
@@ -192,40 +209,32 @@ export default function Home() {
         body: JSON.stringify({ postId, platform, title, caption, hashtags }),
       });
       if (!res.ok) throw new Error("Save failed");
-      const updated = await res.json();
-
-      // Update post in state
+      const saved = await res.json();
+      // Replace optimistic entry with real DB record (has real id)
+      const applyReal = (captions: Caption[]) => [
+        ...captions.filter((c) => c.platform !== platform),
+        saved,
+      ];
       setPosts((prev) =>
-        prev.map((p) => {
-          if (p.id !== postId) return p;
-          const existingCaptions = p.captions.filter(
-            (c) => c.platform !== platform
-          );
-          return { ...p, captions: [...existingCaptions, updated] };
-        })
+        prev.map((p) => p.id !== postId ? p : { ...p, captions: applyReal(p.captions) })
       );
-
-      // Update editing post if open
-      if (editingPost?.id === postId) {
-        setEditingPost((prev) => {
-          if (!prev) return prev;
-          const existingCaptions = prev.captions.filter(
-            (c) => c.platform !== platform
-          );
-          return { ...prev, captions: [...existingCaptions, updated] };
-        });
-      }
+      setEditingPost((prev) =>
+        prev?.id !== postId ? prev : { ...prev, captions: applyReal(prev.captions) }
+      );
     } catch {
       toast.error("Failed to save caption");
     }
   };
 
-  // Handle description save (manual edits via textarea blur)
+  // Handle description save — demo posts use localStorage, own uploads use DB
   const handleSaveDescription = async (postId: string, description: string) => {
     setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, description } : p));
     setEditingPost((prev) => prev?.id === postId ? { ...prev, description } : prev);
     const post = posts.find((p) => p.id === postId);
-    if (post?.isDemo) return; // demo post descriptions are local-only — don't write to shared record
+    if (post?.isDemo) {
+      localStorage.setItem(`bp_desc_${postId}`, description);
+      return;
+    }
     try {
       const res = await fetch(`/api/posts/${postId}`, {
         method: "PATCH",
@@ -238,10 +247,14 @@ export default function Home() {
     }
   };
 
-  // Handle analyze complete — DB already updated by the API; just sync local state
+  // Handle analyze complete — saves description to localStorage for demo posts, DB for own posts
   const handleAnalyzeComplete = (postId: string, description: string) => {
     setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, description } : p));
     setEditingPost((prev) => prev?.id === postId ? { ...prev, description } : prev);
+    const post = posts.find((p) => p.id === postId);
+    if (post?.isDemo) {
+      localStorage.setItem(`bp_desc_${postId}`, description);
+    }
   };
 
   // Handle rename (updates title + renames file on disk)
