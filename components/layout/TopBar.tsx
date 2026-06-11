@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef } from "react";
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { type Platform } from "./Sidebar";
@@ -56,7 +55,8 @@ export default function TopBar({
     <header className="h-14 bg-[var(--bg-panel)] border-b border-[var(--border-subtle)] flex items-center px-6 gap-4 shrink-0">
       {/* Logo */}
       <div className="flex items-center gap-2 mr-2 shrink-0">
-        <Image src="/icon.png" alt="" width={28} height={28} className="rounded-lg shrink-0" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icon.png" alt="Boardplan" className="w-7 h-7 object-cover rounded-lg shrink-0" />
         <span className="hidden sm:block font-bold text-[var(--text-primary)] text-lg tracking-tight">boardplan</span>
       </div>
 
