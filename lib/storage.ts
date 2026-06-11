@@ -1,4 +1,4 @@
-import { put } from "@vercel/blob";
+import { put, del } from "@vercel/blob";
 import { v4 as uuidv4 } from "uuid";
 
 export async function saveFile(file: File): Promise<{
@@ -18,6 +18,11 @@ export async function saveFile(file: File): Promise<{
     mimeType: file.type,
     size: file.size,
   };
+}
+
+export async function deleteFile(url: string): Promise<void> {
+  if (!url.startsWith("http")) return; // legacy local path — nothing to do
+  await del(url);
 }
 
 export function getPublicUrl(filename: string): string {

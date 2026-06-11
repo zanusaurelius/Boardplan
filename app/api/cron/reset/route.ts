@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { deleteFile } from "@/lib/storage";
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -9,13 +10,22 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Delete all visitor-uploaded posts (non-demo), cascading to their media and captions
+  // Fetch media URLs before deleting DB rows so blobs can be cleaned up
+  const postsToDelete = await prisma.post.findMany({
+    where: { isDemo: false },
+    include: { media: true },
+  });
+
+  const mediaUrls = postsToDelete.flatMap((p) => p.media.map((m) => m.filename));
+  await Promise.all(mediaUrls.map(deleteFile));
+
+  // Delete visitor posts (cascades to media + captions rows)
   const deleted = await prisma.post.deleteMany({ where: { isDemo: false } });
 
-  // Delete all visitor-generated captions on demo posts
+  // Delete visitor captions on demo posts (not covered by post cascade)
   await prisma.caption.deleteMany({});
 
-  // Reset all rate limit counters
+  // Reset rate limit counters
   await prisma.rateLimit.deleteMany({});
 
   return NextResponse.json({ deleted: deleted.count });

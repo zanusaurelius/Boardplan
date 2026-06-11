@@ -2,9 +2,11 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getSessionId } from "@/lib/session";
 
 export async function PATCH(request: Request) {
   try {
+    const sessionId = await getSessionId();
     const body = await request.json();
     const { orderedIds } = body as { orderedIds: string[] };
 
@@ -15,11 +17,13 @@ export async function PATCH(request: Request) {
       );
     }
 
+    // Only persist order for the visitor's own posts — demo post order is session-local
+    // (stored in localStorage client-side so it never affects other visitors)
     // Neon HTTP adapter doesn't support transactions — run updates concurrently
     await Promise.all(
       orderedIds.map((id, index) =>
-        prisma.post.update({
-          where: { id },
+        prisma.post.updateMany({
+          where: { id, sessionId },
           data: { order: index },
         })
       )

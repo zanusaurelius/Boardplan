@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import { analyzeImage } from "@/lib/claude";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { getSessionId } from "@/lib/session";
 
 const LIMIT = 5;
 const WINDOW_MS = 60 * 60 * 1000;
@@ -40,12 +41,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "postId is required" }, { status: 400 });
     }
 
+    const sessionId = await getSessionId();
+
     const post = await prisma.post.findUnique({
       where: { id: postId },
       include: { media: true },
     });
 
-    if (!post) {
+    if (!post || (!post.isDemo && post.sessionId !== sessionId)) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
@@ -73,8 +76,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Don't write to shared demo post records — client updates local state only
-    if (!post.isDemo) {
+    // Demo post descriptions are visitor-local — client stores in localStorage.
+    // For visitor-owned posts, write to DB.
+    if (!post.isDemo && post.sessionId === sessionId) {
       await prisma.post.update({
         where: { id: postId },
         data: { description },

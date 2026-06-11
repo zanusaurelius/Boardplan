@@ -52,18 +52,44 @@ export default function Home() {
   const [isDragOverPage, setIsDragOverPage] = useState(false);
   const dragCounterRef = useRef(0);
 
-  // Fetch posts — re-applies localStorage descriptions for demo posts after load
+  // Fetch posts — re-applies localStorage state for demo posts after load
   const fetchPosts = useCallback(async () => {
     try {
       const res = await fetch("/api/posts");
       if (!res.ok) throw new Error("Failed to fetch");
       const data: Post[] = await res.json();
-      const withLocalDescriptions = data.map((p) => {
+
+      // Re-apply per-session field overrides for demo posts
+      const withLocalState = data.map((p) => {
         if (!p.isDemo) return p;
-        const stored = localStorage.getItem(`bp_desc_${p.id}`);
-        return stored ? { ...p, description: stored } : p;
+        const storedDesc = localStorage.getItem(`bp_desc_${p.id}`);
+        const storedTitle = localStorage.getItem(`bp_title_${p.id}`);
+        const storedStatus = localStorage.getItem(`bp_status_${p.id}`);
+        return {
+          ...p,
+          description: storedDesc ?? p.description,
+          title: storedTitle !== null ? storedTitle : p.title,
+          status: storedStatus ?? p.status,
+        };
       });
-      setPosts(withLocalDescriptions);
+
+      // Re-apply per-session post order
+      const storedOrder = localStorage.getItem("bp_post_order");
+      if (storedOrder) {
+        try {
+          const orderedIds: string[] = JSON.parse(storedOrder);
+          const byId = new Map(withLocalState.map((p) => [p.id, p]));
+          const sorted = [
+            ...orderedIds.map((id) => byId.get(id)).filter((p): p is Post => !!p),
+            ...withLocalState.filter((p) => !orderedIds.includes(p.id)),
+          ];
+          setPosts(sorted);
+          return;
+        } catch {
+          // malformed localStorage — fall through to default order
+        }
+      }
+      setPosts(withLocalState);
     } catch {
       toast.error("Failed to load posts");
     }
@@ -161,7 +187,7 @@ export default function Home() {
 
   const clearSelection = () => setSelectedIds(new Set());
 
-  // Handle reorder
+  // Handle reorder — order is session-local (stored in localStorage)
   const handleReorder = async (orderedIds: string[]) => {
     // Optimistic update
     const reordered = orderedIds
@@ -169,6 +195,10 @@ export default function Home() {
       .filter((p): p is Post => !!p);
     setPosts(reordered);
 
+    // Persist full order session-locally so it survives page refresh
+    localStorage.setItem("bp_post_order", JSON.stringify(orderedIds));
+
+    // Also persist DB order for visitor's own posts (doesn't affect other visitors)
     try {
       const res = await fetch("/api/posts/reorder", {
         method: "PATCH",
@@ -257,8 +287,16 @@ export default function Home() {
     }
   };
 
-  // Handle rename (updates title + renames file on disk)
+  // Handle rename — demo posts store title in localStorage only (session-local)
   const handleRenamePost = async (postId: string, title: string) => {
+    const post = posts.find((p) => p.id === postId);
+    if (post?.isDemo) {
+      localStorage.setItem(`bp_title_${postId}`, title);
+      setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, title } : p));
+      setEditingPost((prev) => prev?.id === postId ? { ...prev, title } : prev);
+      toast.success("Renamed successfully");
+      return;
+    }
     try {
       const res = await fetch(`/api/posts/${postId}`, {
         method: "PATCH",
@@ -274,8 +312,28 @@ export default function Home() {
     }
   };
 
-  // Handle status update — auto-moves to oldest slot when posted
+  // Handle status update — demo posts store status in localStorage only (session-local)
   const handleUpdateStatus = async (postId: string, status: string) => {
+    const post = posts.find((p) => p.id === postId);
+    if (post?.isDemo) {
+      localStorage.setItem(`bp_status_${postId}`, status);
+      const updatedPost = { ...post, status };
+      if (status === "posted") {
+        const nonPosted = posts.filter((p) => p.id !== postId && p.status !== "posted");
+        const alreadyPosted = posts.filter((p) => p.id !== postId && p.status === "posted");
+        const newOrder = [...nonPosted, updatedPost, ...alreadyPosted];
+        setPosts(newOrder);
+        fetch("/api/posts/reorder", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderedIds: newOrder.map((p) => p.id) }),
+        }).catch(() => {});
+      } else {
+        setPosts((prev) => prev.map((p) => (p.id === postId ? updatedPost : p)));
+      }
+      if (editingPost?.id === postId) setEditingPost(updatedPost);
+      return;
+    }
     try {
       const res = await fetch(`/api/posts/${postId}`, {
         method: "PATCH",
@@ -321,6 +379,7 @@ export default function Home() {
   // Handle delete
   const handleDeletePost = async (id: string) => {
     const post = posts.find((p) => p.id === id);
+    if (post?.isDemo) return;
     if (post?.status === "posted") {
       toast.error("Move to Draft or Ready before deleting");
       return;
@@ -339,14 +398,14 @@ export default function Home() {
 
   // Handle bulk delete
   const handleBulkDelete = async () => {
-    const deletable = posts.filter((p) => selectedIds.has(p.id) && p.status !== "posted");
+    const deletable = posts.filter((p) => selectedIds.has(p.id) && !p.isDemo && p.status !== "posted");
     const blocked = selectedIds.size - deletable.length;
 
     if (deletable.length === 0) {
-      toast.error("Posted posts cannot be deleted — move them to Draft or Ready first");
+      toast.error("Nothing to delete — demo posts can't be deleted, and posted posts must be moved to Draft or Ready first");
       return;
     }
-    if (!confirm(`Delete ${deletable.length} post(s)?${blocked > 0 ? ` (${blocked} posted post(s) will be skipped)` : ""}`)) return;
+    if (!confirm(`Delete ${deletable.length} post(s)?${blocked > 0 ? ` (${blocked} will be skipped)` : ""}`)) return;
 
     const deleteResults = await Promise.all(
       deletable.map(async (p) => {
@@ -361,7 +420,7 @@ export default function Home() {
     if (failedCount > 0) {
       toast.error(`Deleted ${deletedIds.size} post(s), but ${failedCount} failed`);
     } else {
-      toast.success(`Deleted ${deletable.length} post(s)${blocked > 0 ? `, skipped ${blocked} posted` : ""}`);
+      toast.success(`Deleted ${deletable.length} post(s)${blocked > 0 ? `, skipped ${blocked}` : ""}`);
     }
   };
 

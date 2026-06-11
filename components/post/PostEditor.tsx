@@ -281,7 +281,7 @@ export default function PostEditor({
             <div className="flex-1 sm:hidden" />
 
             <div className="flex items-center gap-2">
-              {onDeletePost && post.status !== "posted" && (
+              {onDeletePost && !post.isDemo && post.status !== "posted" && (
                 <button
                   onClick={async () => {
                     if (!confirm("Delete this post?")) return;

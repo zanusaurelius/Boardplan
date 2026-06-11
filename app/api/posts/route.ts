@@ -50,6 +50,12 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const cookieStore = await cookies();
+    const sessionId = cookieStore.get(SESSION_COOKIE)?.value;
+    if (!sessionId) {
+      return NextResponse.json({ error: "No session" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { title } = body;
 
@@ -62,6 +68,7 @@ export async function POST(request: Request) {
       data: {
         title: title || null,
         order: (maxOrder?.order ?? -1) + 1,
+        sessionId,
       },
       include: {
         media: true,
