@@ -253,9 +253,8 @@ export default function Home() {
         body: JSON.stringify({ title }),
       });
       if (!res.ok) throw new Error("Rename failed");
-      const updated = await res.json();
-      setPosts((prev) => prev.map((p) => (p.id === postId ? updated : p)));
-      if (editingPost?.id === postId) setEditingPost(updated);
+      setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, title } : p));
+      setEditingPost((prev) => prev?.id === postId ? { ...prev, title } : prev);
       toast.success("Renamed successfully");
     } catch {
       toast.error("Failed to rename");

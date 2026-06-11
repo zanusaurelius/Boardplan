@@ -17,7 +17,11 @@ export async function GET() {
         },
       },
     });
-    return NextResponse.json(posts);
+    // Strip descriptions from demo posts — each visitor's description is local-only state
+    const sanitized = posts.map((p) =>
+      p.isDemo ? { ...p, description: "" } : p
+    );
+    return NextResponse.json(sanitized);
   } catch (error) {
     console.error("Error fetching posts:", error);
     return NextResponse.json(
