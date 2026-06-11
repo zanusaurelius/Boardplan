@@ -199,7 +199,7 @@ export default function PostEditor({
       />
 
       {/* Panel - slides in from right */}
-      <div className="absolute right-0 top-0 bottom-0 w-[720px] bg-[var(--bg-panel)] border-l border-[var(--border-subtle)] flex flex-col shadow-2xl">
+      <div className="absolute right-0 top-0 bottom-0 w-full sm:w-[720px] bg-[var(--bg-panel)] border-l border-[var(--border-subtle)] flex flex-col shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-subtle)] shrink-0">
           {/* Prev/Next nav */}

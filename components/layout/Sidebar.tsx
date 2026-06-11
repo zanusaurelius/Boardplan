@@ -80,33 +80,35 @@ export default function Sidebar({
         </div>
       </div>
 
-      {view === "grid" && (
-        <div className="flex-1 overflow-y-auto p-4">
-          <p className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wider mb-3 px-1">
-            Platforms
-          </p>
-          <nav className="flex flex-col gap-1">
-            {PLATFORMS.map((platform) => (
-              <button
-                key={platform.id}
-                onClick={() => onPlatformChange(platform.id)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left",
-                  activePlatform === platform.id
-                    ? "bg-violet-600/20 text-violet-400 border border-violet-600/30"
-                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-subtle)]"
-                )}
-              >
-                <platform.Icon className={cn("w-4 h-4 shrink-0", activePlatform === platform.id ? "text-violet-400" : platform.iconColor)} />
-                <span>{platform.label}</span>
-                {activePlatform === platform.id && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-violet-400" />
-                )}
-              </button>
-            ))}
-          </nav>
-        </div>
-      )}
+      <div className="flex-1 overflow-y-auto p-4">
+        {view === "grid" && (
+          <>
+            <p className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wider mb-3 px-1">
+              Platforms
+            </p>
+            <nav className="flex flex-col gap-1">
+              {PLATFORMS.map((platform) => (
+                <button
+                  key={platform.id}
+                  onClick={() => onPlatformChange(platform.id)}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left",
+                    activePlatform === platform.id
+                      ? "bg-violet-600/20 text-violet-400 border border-violet-600/30"
+                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-subtle)]"
+                  )}
+                >
+                  <platform.Icon className={cn("w-4 h-4 shrink-0", activePlatform === platform.id ? "text-violet-400" : platform.iconColor)} />
+                  <span>{platform.label}</span>
+                  {activePlatform === platform.id && (
+                    <span className="ml-auto w-1.5 h-1.5 rounded-full bg-violet-400" />
+                  )}
+                </button>
+              ))}
+            </nav>
+          </>
+        )}
+      </div>
 
       <div className="p-4 border-t border-[var(--border-subtle)] flex items-center justify-between">
         <p className="text-[var(--text-faint)] text-xs">Boardplan v1.0</p>
