@@ -22,6 +22,7 @@ interface Caption {
 
 interface Post {
   id: string;
+  isDemo: boolean;
   title: string | null;
   description: string;
   status: string;
