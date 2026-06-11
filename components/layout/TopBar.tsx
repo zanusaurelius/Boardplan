@@ -56,7 +56,7 @@ export default function TopBar({
       {/* Logo */}
       <div className="flex items-center gap-2 mr-2 shrink-0">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/icon.png" alt="Boardplan" className="w-7 h-7 object-cover rounded-lg shrink-0" />
+        <img src="/icon.png" alt="Boardplan" className="w-7 h-7 object-contain shrink-0" />
         <span className="hidden sm:block font-bold text-[var(--text-primary)] text-lg tracking-tight">boardplan</span>
       </div>
 
