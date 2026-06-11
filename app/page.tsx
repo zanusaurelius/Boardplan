@@ -9,6 +9,7 @@ import PlatformGrid from "@/components/grid/PlatformGrid";
 import MediaLibrary from "@/components/library/MediaLibrary";
 import PostEditor from "@/components/post/PostEditor";
 import BulkGenerateModal from "@/components/post/BulkGenerateModal";
+import type { CaptionTone } from "@/lib/claude";
 
 interface Media {
   id: string;
@@ -345,7 +346,7 @@ export default function Home() {
   };
 
   // Handle single AI generation
-  const handleGenerateAI = async (postId: string, platform: string) => {
+  const handleGenerateAI = async (postId: string, platform: string, tone: CaptionTone) => {
     setGeneratingPlatforms((prev) => new Set(prev).add(platform));
     const toastId = toast.loading(`Generating ${platform} caption...`);
     try {
@@ -355,7 +356,7 @@ export default function Home() {
       const res = await fetch("/api/ai/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postIds: [postId], platforms: [platform], descriptions }),
+        body: JSON.stringify({ postIds: [postId], platforms: [platform], descriptions, tone }),
       });
 
       if (!res.ok) throw new Error("Generation failed");
@@ -380,7 +381,7 @@ export default function Home() {
   };
 
   // Handle generate all platforms for a single post
-  const handleGenerateAllPlatforms = async (postId: string) => {
+  const handleGenerateAllPlatforms = async (postId: string, tone: CaptionTone) => {
     const platforms = ["instagram", "tiktok", "youtube", "facebook", "snapchat", "twitter", "pinterest"];
     setGeneratingPlatforms(new Set(platforms));
     try {
@@ -390,7 +391,7 @@ export default function Home() {
       const res = await fetch("/api/ai/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postIds: [postId], platforms, descriptions }),
+        body: JSON.stringify({ postIds: [postId], platforms, descriptions, tone }),
       });
 
       if (!res.ok) throw new Error("Generation failed");

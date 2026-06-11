@@ -6,7 +6,21 @@ export interface GeneratedCaption {
   hashtags: string; // Instagram only (comma-separated)
 }
 
-const SYSTEM_PROMPT = `You are an expert social media marketer who specializes in creating high-performing, platform-native content. You understand what drives engagement, virality, and audience growth across all major platforms. You tailor tone, format, length, and hashtag strategy specifically for each platform's culture and algorithm. You write content that feels authentic — never corporate or generic. Always write with a positive, uplifting, and comedic tone — be funny, witty, and playful while keeping the energy good. Content should make the audience laugh or smile. Avoid negativity, complaining, or mean-spirited humor.`;
+export type CaptionTone = "funny" | "casual" | "professional" | "inspirational" | "educational";
+
+const BASE_SYSTEM_PROMPT = `You are an expert social media marketer who specializes in creating high-performing, platform-native content. You understand what drives engagement, virality, and audience growth across all major platforms. You tailor tone, format, length, and hashtag strategy specifically for each platform's culture and algorithm. You write content that feels authentic — never corporate or generic.`;
+
+const TONE_INSTRUCTIONS: Record<CaptionTone, string> = {
+  funny:         "Be funny, witty, and playful. Content should make the audience laugh or smile. Use humor that feels natural — avoid forced jokes and mean-spirited humor.",
+  casual:        "Be authentic and conversational — like texting a friend. Relaxed, warm, natural. No corporate polish, no forced humor. Just real talk.",
+  professional:  "Be polished and brand-appropriate. Clear, credible, confident. No slang, minimal emojis. Lead with value and keep it tight.",
+  inspirational: "Be uplifting and aspirational. Lead with feeling or a moment of awe, end with something that makes the reader want to act or believe. Storytelling-first.",
+  educational:   "Be informative and useful. Teach something specific about what's in the content. Use accessible language, build credibility, and invite discussion.",
+};
+
+function buildSystemPrompt(tone: CaptionTone): string {
+  return `${BASE_SYSTEM_PROMPT} ${TONE_INSTRUCTIONS[tone]}`;
+}
 
 // Platform-specific instructions — combined with shared system prompt
 const PLATFORM_PROMPTS: Record<string, string> = {
@@ -87,9 +101,42 @@ const MOCK_CAPTIONS: Record<string, GeneratedCaption> = {
   },
 };
 
+export async function analyzeImage(imageUrl: string): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey || apiKey === "your_key_here") return "";
+
+  const client = new Anthropic({ apiKey });
+
+  try {
+    const response = await client.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 300,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "image", source: { type: "url", url: imageUrl } },
+            {
+              type: "text",
+              text: "Describe what's in this image in 2–3 sentences. Focus on the subject, setting, mood, and any notable visual details. Write it as a scene description — not a list. This will be used as context for generating social media captions.",
+            },
+          ],
+        },
+      ],
+    });
+
+    const content = response.content[0];
+    return content.type === "text" ? content.text.trim() : "";
+  } catch (error) {
+    console.error("Image analysis error:", error);
+    return "";
+  }
+}
+
 export async function generateCaption(
   platform: string,
-  description: string
+  description: string,
+  tone: CaptionTone = "funny"
 ): Promise<GeneratedCaption> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
@@ -105,7 +152,7 @@ export async function generateCaption(
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 1024,
-      system: SYSTEM_PROMPT,
+      system: buildSystemPrompt(tone),
       messages: [
         {
           role: "user",

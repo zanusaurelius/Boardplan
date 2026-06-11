@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import type { CaptionTone } from "@/lib/claude";
 
 interface Media {
   id: string;
@@ -64,6 +65,7 @@ export default function BulkGenerateModal({
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(
     new Set(["instagram", "tiktok", "youtube"])
   );
+  const [tone, setTone] = useState<CaptionTone>("funny");
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentItem, setCurrentItem] = useState("");
@@ -104,7 +106,7 @@ export default function BulkGenerateModal({
         const response = await fetch("/api/ai/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ postIds: batch.map((p) => p.id), platforms, descriptions }),
+          body: JSON.stringify({ postIds: batch.map((p) => p.id), platforms, descriptions, tone }),
         });
 
         if (!response.ok) throw new Error("Generation failed");
@@ -147,6 +149,29 @@ export default function BulkGenerateModal({
                 {selectedPosts.length} post{selectedPosts.length !== 1 ? "s" : ""}
               </span>
             </p>
+          </div>
+
+          {/* Tone selector */}
+          <div>
+            <p className="text-[var(--text-tertiary)] text-xs font-semibold uppercase tracking-wider mb-2">
+              Tone
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {(["funny", "casual", "professional", "inspirational", "educational"] as CaptionTone[]).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTone(t)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-xs font-medium capitalize transition-all",
+                    tone === t
+                      ? "bg-violet-600 text-white"
+                      : "bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:border-[var(--border-light)]"
+                  )}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Platform selection */}

@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { CaptionTone } from "@/lib/claude";
 
 interface Media {
   id: string;
@@ -53,8 +54,8 @@ interface PostEditorProps {
     hashtags: string
   ) => Promise<void>;
   onUpdateStatus: (postId: string, status: string) => Promise<void>;
-  onGenerateAI: (postId: string, platform: string) => Promise<void>;
-  onGenerateAllPlatforms: (postId: string) => Promise<void>;
+  onGenerateAI: (postId: string, platform: string, tone: CaptionTone) => Promise<void>;
+  onGenerateAllPlatforms: (postId: string, tone: CaptionTone) => Promise<void>;
   generatingPlatforms: Set<string>;
   onRenamePost?: (postId: string, title: string) => Promise<void>;
   onSaveDescription?: (postId: string, description: string) => Promise<void>;
@@ -86,6 +87,8 @@ export default function PostEditor({
   onDeletePost,
 }: PostEditorProps) {
   const [activePlatform, setActivePlatform] = useState("instagram");
+  const [tone, setTone] = useState<CaptionTone>("funny");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -162,9 +165,28 @@ export default function PostEditor({
   const getCaption = (platform: string) =>
     post.captions.find((c) => c.platform === platform);
 
+  const handleAnalyzeImage = async () => {
+    if (!post || isAnalyzing) return;
+    setIsAnalyzing(true);
+    try {
+      const res = await fetch("/api/ai/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId: post.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Analysis failed");
+      onSaveDescription?.(post.id, data.description);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const handleGenerateAll = async () => {
     setIsGeneratingAll(true);
-    await onGenerateAllPlatforms(post.id);
+    await onGenerateAllPlatforms(post.id, tone);
     setIsGeneratingAll(false);
   };
 
@@ -360,13 +382,41 @@ export default function PostEditor({
 
             {/* Description / transcript for AI */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wider">
-                Description / Transcript
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wider">
+                  Description / Transcript
+                </label>
+                {!isLocked && !isVideo && (
+                  <button
+                    onClick={handleAnalyzeImage}
+                    disabled={isAnalyzing}
+                    className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 disabled:opacity-50 transition-colors"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Analyzing…
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Analyze image
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
               <textarea
+                key={post.description}
                 defaultValue={post.description || ""}
                 onBlur={(e) => !isLocked && onSaveDescription?.(post.id, e.target.value)}
-                placeholder="Describe what this video or photo is about, or paste the transcript. Claude will use this to write captions for each platform."
+                placeholder={isVideo ? "Describe what happens in this video — Claude will use this to write captions." : "Click \"Analyze image\" to auto-fill, or describe the photo yourself."}
                 rows={4}
                 disabled={isLocked}
                 className={cn(
@@ -374,6 +424,29 @@ export default function PostEditor({
                   isLocked && "opacity-60 cursor-not-allowed"
                 )}
               />
+            </div>
+
+            {/* Tone selector */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wider">
+                Tone
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {(["funny", "casual", "professional", "inspirational", "educational"] as CaptionTone[]).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTone(t)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-xs font-medium capitalize transition-all",
+                      tone === t
+                        ? "bg-violet-600 text-white"
+                        : "bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:border-[var(--border-light)]"
+                    )}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Generate all platforms button */}
@@ -435,7 +508,7 @@ export default function PostEditor({
                 onSave={(platform, title, caption, hashtags) =>
                   onSaveCaption(post.id, platform, title, caption, hashtags)
                 }
-                onGenerateAI={(platform) => onGenerateAI(post.id, platform)}
+                onGenerateAI={(platform) => onGenerateAI(post.id, platform, tone)}
                 isGenerating={
                   generatingPlatforms.has(activePlatform) || isGeneratingAll
                 }
