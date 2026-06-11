@@ -99,16 +99,12 @@ export async function PATCH(
       }
     }
 
-    const post = await prisma.post.update({
+    await prisma.post.update({
       where: { id },
       data: updateData,
-      include: {
-        media: true,
-        captions: true,
-      },
     });
 
-    return NextResponse.json(post);
+    return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Error updating post:", error);
     return NextResponse.json(
