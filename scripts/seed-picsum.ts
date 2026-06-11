@@ -11,6 +11,7 @@ import { PrismaNeonHttp } from "@prisma/adapter-neon";
 import { PrismaClient } from "@prisma/client";
 import { put } from "@vercel/blob";
 import { v4 as uuidv4 } from "uuid";
+import Anthropic from "@anthropic-ai/sdk";
 
 const connectionString =
   process.env.DATABASE_URL ||
@@ -59,6 +60,28 @@ const POSTS = [
   { title: "Cappadocia Balloons", description: "Dozens of hot air balloons drift silently over the alien landscape of fairy chimneys and volcanic tuff formations in Cappadocia, Turkey, just after sunrise. Cave hotels carved into the rock face glow in early morning light below the floating fleet." },
 ];
 
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+async function getTitle(imageUrl: string): Promise<string> {
+  try {
+    const res = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 20,
+      messages: [{
+        role: "user",
+        content: [
+          { type: "image", source: { type: "url", url: imageUrl } },
+          { type: "text", text: "Give this image a 2-word title. Just two words, no punctuation, no explanation." },
+        ],
+      }],
+    });
+    const text = res.content[0].type === "text" ? res.content[0].text.trim() : "";
+    return text || "Untitled";
+  } catch {
+    return "Untitled";
+  }
+}
+
 async function uploadFromUrl(url: string, slug: string): Promise<{ blobUrl: string; size: number }> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
@@ -73,6 +96,10 @@ async function main() {
     console.error("BLOB_READ_WRITE_TOKEN not set — cannot upload to Vercel Blob.");
     process.exit(1);
   }
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.error("ANTHROPIC_API_KEY not set — cannot generate titles.");
+    process.exit(1);
+  }
 
   console.log("Clearing existing posts...");
   await prisma.media.deleteMany({});
@@ -82,13 +109,13 @@ async function main() {
   console.log(`Seeding ${POSTS.length} posts...\n`);
 
   for (let i = 0; i < POSTS.length; i++) {
-    const { title } = POSTS[i];
     const picsumUrl = `https://picsum.photos/seed/${i + 10}/1080/1350`;
-    const slug = title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 
-    process.stdout.write(`[${i + 1}/${POSTS.length}] ${title} — downloading...`);
-    const { blobUrl, size } = await uploadFromUrl(picsumUrl, slug);
-    process.stdout.write(` uploaded\n`);
+    process.stdout.write(`[${i + 1}/${POSTS.length}] downloading...`);
+    const { blobUrl, size } = await uploadFromUrl(picsumUrl, `photo-${i}`);
+    process.stdout.write(` uploaded, titling...`);
+    const title = await getTitle(blobUrl);
+    process.stdout.write(` "${title}"\n`);
 
     const post = await prisma.post.create({
       data: { title, description: "", status: "draft", order: i, isDemo: true },
