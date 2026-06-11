@@ -273,8 +273,6 @@ export default function CaptionEditor({
             </div>
           )}
         </div>
-
-        <GenerateButton />
       </div>
     );
   }
@@ -305,7 +303,6 @@ export default function CaptionEditor({
             rows={9}
           />
         </div>
-        <GenerateButton />
       </div>
     );
   }
@@ -352,8 +349,6 @@ export default function CaptionEditor({
           rows={5}
         />
       </div>
-
-      <GenerateButton />
     </div>
   );
 }

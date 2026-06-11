@@ -6,6 +6,7 @@ import { FaTiktok, FaXTwitter, FaSnapchat } from "react-icons/fa6";
 import { cn } from "@/lib/utils";
 import CaptionEditor from "./CaptionEditor";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -176,9 +177,10 @@ export default function PostEditor({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Analysis failed");
-      onSaveDescription?.(post.id, data.description);
+      await onSaveDescription?.(post.id, data.description);
     } catch (err) {
-      console.error(err);
+      const msg = err instanceof Error ? err.message : "Analysis failed";
+      toast.error(msg);
     } finally {
       setIsAnalyzing(false);
     }
@@ -341,17 +343,6 @@ export default function PostEditor({
                     />
                   )}
                 </div>
-                {firstMedia && (
-                  <button
-                    onClick={() => fetch(`/api/media/reveal?filename=${encodeURIComponent(firstMedia.filename)}`)}
-                    className="flex items-center gap-2 text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-subtle)] transition-all px-3 py-2 rounded-lg border border-[var(--border-light)] hover:border-[var(--border-medium)] self-start"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                    </svg>
-                    Show in Finder
-                  </button>
-                )}
               </div>
             )}
 
@@ -449,29 +440,54 @@ export default function PostEditor({
               </div>
             </div>
 
-            {/* Generate all platforms button */}
-            <Button
-              className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white border-0"
-              onClick={handleGenerateAll}
-              disabled={isGeneratingAll || generatingPlatforms.size > 0}
-            >
-              {isGeneratingAll ? (
-                <>
-                  <svg className="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Generating All Platforms...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  Generate All Platforms
-                </>
-              )}
-            </Button>
+            {/* Generate buttons */}
+            <div className="flex flex-col gap-2">
+              <Button
+                className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white border-0"
+                onClick={handleGenerateAll}
+                disabled={isGeneratingAll || generatingPlatforms.size > 0}
+              >
+                {isGeneratingAll ? (
+                  <>
+                    <svg className="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Generating All Platforms...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Generate All Platforms
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full border-violet-600/30 text-violet-400 hover:bg-violet-600/10 hover:border-violet-500/50 bg-transparent"
+                onClick={() => onGenerateAI(post.id, activePlatform, tone)}
+                disabled={generatingPlatforms.has(activePlatform) || isGeneratingAll}
+              >
+                {generatingPlatforms.has(activePlatform) ? (
+                  <>
+                    <svg className="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Generate for {PLATFORMS.find(p => p.id === activePlatform)?.label ?? activePlatform}
+                  </>
+                )}
+              </Button>
+            </div>
 
             {/* Platform tabs */}
             <div>

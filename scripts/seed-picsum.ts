@@ -74,10 +74,15 @@ async function main() {
     process.exit(1);
   }
 
+  console.log("Clearing existing posts...");
+  await prisma.media.deleteMany({});
+  await prisma.post.deleteMany({});
+  console.log("Cleared.\n");
+
   console.log(`Seeding ${POSTS.length} posts...\n`);
 
   for (let i = 0; i < POSTS.length; i++) {
-    const { title, description } = POSTS[i];
+    const { title } = POSTS[i];
     const picsumUrl = `https://picsum.photos/seed/${i + 10}/1080/1350`;
     const slug = title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 
@@ -86,7 +91,7 @@ async function main() {
     process.stdout.write(` uploaded\n`);
 
     const post = await prisma.post.create({
-      data: { title, description, status: "draft", order: i },
+      data: { title, description: "", status: "draft", order: i, isDemo: true },
     });
 
     await prisma.media.create({
