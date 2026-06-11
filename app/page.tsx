@@ -33,6 +33,7 @@ interface Post {
   description: string;
   status: string;
   order: number;
+  isDemo: boolean;
   media: Media[];
   captions: Caption[];
 }
@@ -221,9 +222,10 @@ export default function Home() {
 
   // Handle description save (manual edits via textarea blur)
   const handleSaveDescription = async (postId: string, description: string) => {
-    // Update local state immediately so the UI reflects the change
     setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, description } : p));
     setEditingPost((prev) => prev?.id === postId ? { ...prev, description } : prev);
+    const post = posts.find((p) => p.id === postId);
+    if (post?.isDemo) return; // demo post descriptions are local-only — don't write to shared record
     try {
       const res = await fetch(`/api/posts/${postId}`, {
         method: "PATCH",

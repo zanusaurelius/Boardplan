@@ -73,12 +73,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const updated = await prisma.post.update({
-      where: { id: postId },
-      data: { description },
-    });
+    // Don't write to shared demo post records — client updates local state only
+    if (!post.isDemo) {
+      await prisma.post.update({
+        where: { id: postId },
+        data: { description },
+      });
+    }
 
-    return NextResponse.json({ description: updated.description });
+    return NextResponse.json({ description });
   } catch (error) {
     console.error("Analyze route error:", error);
     return NextResponse.json({ error: "Failed to analyze image" }, { status: 500 });
