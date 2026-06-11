@@ -125,7 +125,7 @@ async function main() {
       data: {
         postId: post.id,
         filename: blobUrl,
-        originalName: `${slug}.jpg`,
+        originalName: `photo-${i}.jpg`,
         mimeType: "image/jpeg",
         size,
       },
