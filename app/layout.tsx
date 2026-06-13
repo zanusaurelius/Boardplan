@@ -23,14 +23,12 @@ export const metadata: Metadata = {
     description: "Plan, organize, and caption your social media content",
     url: "https://boardplan.spartanatlas.com",
     siteName: "Boardplan",
-    images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
     title: "Boardplan – Social Media Content Planner",
     description: "Plan, organize, and caption your social media content",
-    images: ["/opengraph-image"],
   },
 };
 
